@@ -19,6 +19,8 @@ jobs:
       run: |
           echo ::set-output name=release_tag::$(curl -sL $REPO_URL | jq -r ".tag_name")
           echo ::set-output name=current_tag::$(export $(grep -e KAVA_VERSION -e KAVA_SUFFIX .env | xargs) && echo "v${KAVA_VERSION}${KAVA_SUFFIX}")
+          echo "release_tag=${release_tag}"
+          echo "current_tag=${current_tag}"
       working-directory: containers/kava
 
     - name: Build

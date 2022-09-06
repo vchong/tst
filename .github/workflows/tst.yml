@@ -7,7 +7,6 @@ env:
   REPO_URL: https://api.github.com/repos/Kava-Labs/kava/releases/latest
   VERSION_STR: KAVA_VERSION
   SUFFIX_STR: KAVA_SUFFIX
-  WORKING_DIR: containers/kava
 
 jobs:
   build_and_upload:
@@ -19,23 +18,22 @@ jobs:
       id: get_versions
       run: |
           echo ::set-output name=version_str::${VERSION_STR}
-          echo ::set-output name=working_dir::${WORKING_DIR}
           echo ::set-output name=release_tag::$(curl -sL $REPO_URL | jq -r ".tag_name")
           echo ::set-output name=current_tag::$(export $(grep -e ${VERSION_STR} -e ${SUFFIX_STR} .env | xargs) && echo "v${!VERSION_STR}${!SUFFIX_STR}")
           echo "release_tag=${steps.get_versions.outputs.release_tag}"
           echo "current_tag=${steps.get_versions.outputs.current_tag}"
-      working-directory: ${{ steps.get_versions.outputs.working_dir }}
+      working-directory: containers/kava
 
     - name: Build
       if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
       run: |
         make build
-      working-directory: ${{ steps.get_versions.outputs.working_dir }}
+      working-directory: containers/kava
 
     - name: Upload image
       if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
       run: make push
-      working-directory: ${{ steps.get_versions.outputs.working_dir }}
+      working-directory: containers/kava
 
     - name: Create PR
       uses: peter-evans/create-pull-request@v4

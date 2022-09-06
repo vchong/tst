@@ -7,7 +7,6 @@ env:
   REPO_URL: https://api.github.com/repos/Kava-Labs/kava/releases/latest
   VERSION_ARG: KAVA_VERSION
   SUFFIX_ARG: KAVA_SUFFIX
-  WORKING_DIR: containers/kava
 
 jobs:
   build_and_upload:
@@ -20,7 +19,7 @@ jobs:
       run: |
           echo ::set-output name=release_tag::$(curl -sL $REPO_URL | jq -r ".tag_name")
           echo ::set-output name=current_tag::$(export $(grep -e KAVA_VERSION -e KAVA_SUFFIX .env | xargs) && echo "v${KAVA_VERSION}${KAVA_SUFFIX}")
-      working-directory: $WORKING_DIR
+      working-directory: containers/kava
 
     - name: Build
       if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
@@ -28,7 +27,7 @@ jobs:
         RELEASE_TAG: ${{ steps.get_versions.outputs.release_tag }}
       run: |
         make build
-      working-directory: $WORKING_DIR
+      working-directory: containers/kava
 
     - name: Configure AWS credentials
       if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
@@ -46,4 +45,4 @@ jobs:
     - name: Upload image
       if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
       run: make push
-      working-directory: $WORKING_DIR
+      working-directory: containers/kava

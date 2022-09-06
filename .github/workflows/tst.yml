@@ -50,6 +50,7 @@ jobs:
         echo "::set-output name=date::$(date +'%Y%m%d-%H%M')"
         sed -i "s/${VERSION_STR}.*/${VERSION_STR}=${{ steps.get_versions.outputs.release_tag }}/g" .env
         sed -i "s/${SUFFIX_STR}.*/${SUFFIX_STR}=/g" .env
+        echo "$ cat .env"
         cat .env
       working-directory: ${{ steps.gwd.outputs.working_dir }}
 

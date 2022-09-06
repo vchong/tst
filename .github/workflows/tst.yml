@@ -20,8 +20,8 @@ jobs:
           echo ::set-output name=version_str::${VERSION_STR}
           echo ::set-output name=release_tag::$(curl -sL $REPO_URL | jq -r ".tag_name")
           echo ::set-output name=current_tag::$(export $(grep -e ${VERSION_STR} -e ${SUFFIX_STR} .env | xargs) && echo "v${!VERSION_STR}${!SUFFIX_STR}")
-          echo "latest version = ${steps.get_versions.outputs.release_tag}"
-          echo "current version = ${steps.get_versions.outputs.current_tag}"
+          echo "latest version is ${steps.get_versions.outputs.release_tag}"
+          echo "current version is ${steps.get_versions.outputs.current_tag}"
       working-directory: containers/kava
 
     - name: Build

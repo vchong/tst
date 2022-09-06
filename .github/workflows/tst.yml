@@ -5,8 +5,8 @@ on:
 
 env:
   REPO_URL: https://api.github.com/repos/Kava-Labs/kava/releases/latest
-  VERSION_ARG: KAVA_VERSION
-  SUFFIX_ARG: KAVA_SUFFIX
+  VERSION_STR: KAVA_VERSION
+  SUFFIX_STR: KAVA_SUFFIX
 
 jobs:
   build_and_upload:
@@ -18,7 +18,7 @@ jobs:
       id: get_versions
       run: |
           echo ::set-output name=release_tag::$(curl -sL $REPO_URL | jq -r ".tag_name")
-          echo ::set-output name=current_tag::$(export $(grep -e KAVA_VERSION -e KAVA_SUFFIX .env | xargs) && echo "v${KAVA_VERSION}${KAVA_SUFFIX}")
+          echo ::set-output name=current_tag::$(export $(grep -e ${VERSION_STR} -e ${SUFFIX_STR} .env | xargs) && echo "v${!VERSION_STR}${!SUFFIX_STR}")
           echo "release_tag=${release_tag}"
           echo "current_tag=${current_tag}"
       working-directory: containers/kava

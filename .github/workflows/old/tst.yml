@@ -1,0 +1,16 @@
+name: tst
+
+on:
+  release:
+    types: [published]
+    url: https://github.com/vchong/tmp
+
+jobs:
+  build_and_upload:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: tst
+      run: hostname
+      working-directory: ./

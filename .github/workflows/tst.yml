@@ -1,16 +1,53 @@
 name: tst
 
 on:
-  release:
-    types: [published]
-    url: https://github.com/vchong/tmp
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'tst ver chk autobuild'
+        required: true
+
+env:
+  REPO_URL: https://api.github.com/repos/Kava-Labs/kava/releases/latest
+  VERSION_ARG: KAVA_VERSION
+  SUFFIX_ARG: KAVA_SUFFIX
+  WORKING_DIR: containers/kava
 
 jobs:
   build_and_upload:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
 
-    - name: tst
-      run: hostname
-      working-directory: ./
+    - name: Get versions
+      id: get_versions
+      run: |
+          echo ::set-output name=release_tag::$(curl -sL $REPO_URL | jq -r ".tag_name")
+          echo ::set-output name=current_tag::$(export $(grep -e KAVA_VERSION -e KAVA_SUFFIX .env | xargs) && echo "v${KAVA_VERSION}${KAVA_SUFFIX}")
+      working-directory: $WORKING_DIR
+
+    - name: Build
+      if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
+      env:
+        RELEASE_TAG: ${{ steps.get_versions.outputs.release_tag }}
+      run: |
+        make build
+      working-directory: $WORKING_DIR
+
+    - name: Configure AWS credentials
+      if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+
+    - name: Login to Amazon ECR
+      if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Upload image
+      if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
+      run: make push
+      working-directory: $WORKING_DIR

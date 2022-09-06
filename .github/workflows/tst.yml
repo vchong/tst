@@ -20,9 +20,12 @@ jobs:
           echo ::set-output name=version_str::${VERSION_STR}
           echo ::set-output name=release_tag::$(curl -sL $REPO_URL | jq -r ".tag_name")
           echo ::set-output name=current_tag::$(export $(grep -e ${VERSION_STR} -e ${SUFFIX_STR} .env | xargs) && echo "v${!VERSION_STR}${!SUFFIX_STR}")
+      working-directory: containers/kava
+
+    - name: Print versions
+      run: |
           echo "release_tag = ${{ steps.get_versions.outputs.release_tag }}"
           echo "current_tag = ${{ steps.get_versions.outputs.current_tag }}"
-      working-directory: containers/kava
 
     - name: Build
       if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
@@ -37,6 +40,7 @@ jobs:
 
     - name: Create PR
       uses: peter-evans/create-pull-request@v4
+      if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
       with:
         commit-message: Update ${{ steps.get_versions.outputs.version_str }} to ${{ steps.get_versions.outputs.release_tag }}
         title: Update ${{ steps.get_versions.outputs.version_str }} to ${{ steps.get_versions.outputs.release_tag }}

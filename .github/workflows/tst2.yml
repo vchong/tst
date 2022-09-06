@@ -1,0 +1,68 @@
+name: tst2
+
+on:
+  workflow_dispatch:
+
+env:
+  REPO_URL: https://api.github.com/repos/persistenceOne/persistenceCore/releases/latest
+  VERSION_STR: PERSISTENCE_VERSION
+  SUFFIX_STR: PERSISTENCE_SUFFIX
+  WORKING_DIR: containers/persistence
+
+jobs:
+  build_and_upload:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Get working dir
+      id: gwd
+      run: |
+          echo ::set-output name=working_dir::${WORKING_DIR}
+
+    - name: Get versions
+      id: get_versions
+      run: |
+          echo ::set-output name=version_str::${VERSION_STR}
+          echo ::set-output name=release_tag::$(curl -sL $REPO_URL | jq -r ".tag_name")
+          echo ::set-output name=current_tag::$(export $(grep -e ${VERSION_STR} -e ${SUFFIX_STR} .env | xargs) && echo "v${!VERSION_STR}${!SUFFIX_STR}")
+      working-directory: ${{ steps.gwd.outputs.working_dir }}
+
+    - name: Print versions
+      run: |
+          echo "release_tag = ${{ steps.get_versions.outputs.release_tag }}"
+          echo "current_tag = ${{ steps.get_versions.outputs.current_tag }}"
+
+    - name: Build
+      if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
+      run: |
+        make build
+      working-directory: ${{ steps.gwd.outputs.working_dir }}
+
+    - name: Upload image
+      if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
+      run: make push
+      working-directory: ${{ steps.gwd.outputs.working_dir }}
+
+    - name: Prepare PR
+      id: date
+      if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
+      run: |
+        echo "::set-output name=date::$(date +'%Y%m%d-%H%M')"
+        sed -i "s/${VERSION_STR}.*/${VERSION_STR}=${{ steps.get_versions.outputs.release_tag }}/g" .env
+        sed -i "s/${SUFFIX_STR}.*/${SUFFIX_STR}=/g" .env
+        echo "$ cat .env"
+        cat .env
+      working-directory: ${{ steps.gwd.outputs.working_dir }}
+
+    - name: Create PR
+      uses: peter-evans/create-pull-request@v4
+      if: steps.get_versions.outputs.release_tag > steps.get_versions.outputs.current_tag
+      with:
+        commit-message: Update ${{ steps.get_versions.outputs.version_str }} to ${{ steps.get_versions.outputs.release_tag }}
+        title: Update ${{ steps.get_versions.outputs.version_str }} to ${{ steps.get_versions.outputs.release_tag }}
+        body: |
+          Update ${{ steps.get_versions.outputs.version_str }} to ${{ steps.get_versions.outputs.release_tag }}
+        labels: pe, cosmos-shard
+        branch: cosmos-networks-auto-updates-${{ steps.date.outputs.date }}
+        draft: true
